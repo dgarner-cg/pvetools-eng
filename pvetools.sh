@@ -5,6 +5,10 @@
 #  Mail: dgarner@catalystgroup.gg
 #  Version: v2.3.8
 #  Github: https://github.com/dgarner-cg/pvetools-eng
+#  Further: /usr/share/pve-manager/js/pvemanagerlib.js 
+#  for removing padding that causes huge gaps.
+#  And further: [xxx] for spacing of "Repository Status" 
+#
 ########################################################
 
 #js whiptail --title "Success" --msgbox "c" 10 60
@@ -70,7 +74,7 @@ if [ $exitstatus = 0 ]; then
         if [[ ! `echo $m|grep "^[0-9a-zA-Z.-@]*$"` ]] || [[ $m = '^M' ]];then
             whiptail --title "Warnning" --msgbox "
 Wrong format!!!   input again:
-The password format is wrong! Intersection Intersection Please enter again:
+The password format is wrong! Intersection Intersection Please enter again：
             " 10 60
             smbp
         else
@@ -86,7 +90,7 @@ clear
 if [ $1 ];then
     #x=a
     whiptail --title "Warnning" --msgbox "Not supported!
-" 10 60
+    This model is not supported." 10 60
     chSource
 fi
 sver=`cat /etc/debian_version |awk -F"." '{print $1}'`
@@ -116,14 +120,13 @@ case "$sver" in
     * )
         sver=""
 esac
-
-if [ ! $sver ]; then
-    whiptail --title "Warning" --msgbox "Not supported! Your version does not support this script." 10 60
+if [ ! $sver ];then
+    whiptail --title "Warnning" --msgbox "Not supported!
+   Your version is not supported!Unable to continue。" 10 60
     main
 fi
-
 # debian 11 change security source rule
-if [ $currentDebianVersion -gt 10 ]; then
+if [ $currentDebianVersion -gt 10 ];then
     securitySource="
 deb https://mirrors.ustc.edu.cn/debian-security/ stable-security main contrib non-free
 deb-src https://mirrors.ustc.edu.cn/debian-security/ stable-security main contrib non-free
@@ -134,25 +137,35 @@ deb https://mirrors.ustc.edu.cn/debian-security/ $sver/updates main contrib non-
 deb-src https://mirrors.ustc.edu.cn/debian-security/ $sver/updates main contrib non-free
 "
 fi
-
-OPTION=$(whiptail --title "PveTools   Version : 2.3.8" --menu "Config apt source:" 25 60 15 \
+    #"a" "Automation mode." \
+    #"a" "无脑模式" \
+if [ $L = "en" ];then
+    OPTION=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "Config apt source:" 25 60 15 \
     "b" "Change to cn source." \
     "c" "Disable enterprise." \
     "d" "Undo Change." \
     "q" "Main menu." \
     3>&1 1>&2 2>&3)
-
+else
+    OPTION=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "Configure APT mirror source:" 25 60 15 \
+    "b" "Replace it with domestic source" \
+    "c" "Close the source of corporate updates" \
+    "d" "Restore configuration" \
+    "q" "Return to the main menu" \
+    3>&1 1>&2 2>&3)
+fi
 exitstatus=$?
 if [ $exitstatus = 0 ]; then
     case "$OPTION" in
-    b | B)
-        if (whiptail --title "Yes/No Box" --yesno "Switch to ustc.edu.cn source, disable enterprise subscription updates, add non-subscription updates source (ustc.edu.cn), and modify ceph mirror update source?" 10 60); then
-            if [ `grep "ustc.edu.cn" /etc/apt/sources.list | wc -l` = 0 ]; then
-                cp /etc/apt/sources.list /etc/apt/sources.list.bak
-                cp /etc/apt/sources.list.d/pve-no-sub.list /etc/apt/sources.list.d/pve-no-sub.list.bak
-                cp /etc/apt/sources.list.d/pve-enterprise.list /etc/apt/sources.list.d/pve-enterprise.list.bak
-                cp /etc/apt/sources.list.d/ceph.list /etc/apt/sources.list.d/ceph.list.bak
-                cat > /etc/apt/sources.list <<EOF
+a | A )
+    if (whiptail --title "Yes/No Box" --yesno "Modify to USSTC.edu.cn source, disable enterprises to subscribe to update sources, add non -subscription update sources (USSTC.EDU.CN), modify the Ceph mirror update source" 10 60) then
+        if [ `grep "ustc.edu.cn" /etc/apt/sources.list|wc -l` = 0 ];then
+            #sver=`cat /etc/apt/sources.list|awk 'NR==1{print $3}'`
+            cp /etc/apt/sources.list /etc/apt/sources.list.bak
+            cp /etc/apt/sources.list.d/pve-no-sub.list /etc/apt/sources.list.d/pve-no-sub.list.bak
+            cp /etc/apt/sources.list.d/pve-enterprise.list /etc/apt/sources.list.d/pve-enterprise.list.bak
+            cp /etc/apt/sources.list.d/ceph.list /etc/apt/sources.list.d/ceph.list.bak
+            cat > /etc/apt/sources.list <<EOF
 deb https://mirrors.ustc.edu.cn/debian/ $sver main contrib non-free
 deb-src https://mirrors.ustc.edu.cn/debian/ $sver main contrib non-free
 deb https://mirrors.ustc.edu.cn/debian/ $sver-updates main contrib non-free
@@ -161,20 +174,17 @@ deb https://mirrors.ustc.edu.cn/debian/ $sver-backports main contrib non-free
 deb-src https://mirrors.ustc.edu.cn/debian/ $sver-backports main contrib non-free
 $securitySource
 EOF
-                echo "deb http://mirrors.ustc.edu.cn/proxmox/debian/pve/ $sver pve-no-subscription" > /etc/apt/sources.list.d/pve-no-sub.list
-                sed -i 's|deb|#deb|' /etc/apt/sources.list.d/pve-enterprise.list
-                echo "deb http://mirrors.ustc.edu.cn/proxmox/debian/ceph-luminous $sver main" > /etc/apt/sources.list.d/ceph.list
+            #Modify the PVE 5.X update source address as a non -subscriber renewal source, not using enterprises to subscribe to the update source。
+            echo "deb http://mirrors.ustc.edu.cn/proxmox/debian/pve/ $sver pve-no-subscription" > /etc/apt/sources.list.d/pve-no-sub.list
+            #Close PVE 5.X Enterprise Subscribe to Update Source
+            sed -i 's|deb|#deb|' /etc/apt/sources.list.d/pve-enterprise.list
+           #Modify CEPH mirror update source
+            echo "deb http://mirrors.ustc.edu.cn/proxmox/debian/ceph-luminous $sver main" > /etc/apt/sources.list.d/ceph.list
 
-                if [ $bver -gt 11 ]; then
-                    su -c 'echo "APT::Get::Update::SourceListWarnings::NonFreeFirmware \"false\";" > /etc/apt/apt.conf.d/no-bookworm-firmware.conf'
-                fi
+           #For Debian 12
+            if [ $bver -gt 11 ];then
+                su -c 'echo "APT::Get::Update::SourceListWarnings::NonFreeFirmware \"false\";" > /etc/apt/apt.conf.d/no-bookworm-firmware.conf'
             fi
-        fi
-        ;;
-    esac
-fi
-
-############ COPY 1 ##########
 
             whiptail --title "Success" --msgbox " apt source has been changed successfully!
             The software source has been replaced successfully!" 10 60
@@ -184,7 +194,7 @@ fi
 The software source has been replaced successfully!" 10 60
         else
             whiptail --title "Success" --msgbox " Already changed apt source to ustc.edu.cn!
-The APT source has been replaced as disc.edu.cn "" 10 60
+The APT source has been replaced ustc.edu.cn" 10 60
         fi
         if [ ! $1 ];then
             chSource
@@ -268,7 +278,8 @@ The APT source has been replaced $ss" 10 60
             whiptail --title "Success" --msgbox " apt source has been changed successfully!
             The software source has been replaced successfully!"10 60        else
             whiptail --title "Success" --msgbox " apt source has been changed successfully!
-            The software source has been replaced successfully!"10 60        fi
+            The software source has been replaced successfully!"10 60        
+        fi
         chSource
     fi
     ;;
@@ -1130,7 +1141,7 @@ Already completed configuration
         fi
         ;;
     c )
-        if (whiptail --title "Enable/Disable pvestatd" --yes-button "停止(Disable)" --no-button "启动(Enable)"  --yesno "
+        if (whiptail --title "Enable/Disable pvestatd" --yes-button "stop(Disable)" --no-button "start up(Enable)"  --yesno "
 pvestatd may spinup the drivers,if hdspindown can not effective, you can disable it to make drives to spindown.
 When using LVM, PVESTATD may cause frequent wake -up hard disks, causing HDSPINDOWN to not make your hard disk dormant. If you need it, you can stop this service here.
 Stop this service will display some abnormalities on the web interface. If you need to operate on the web interface, you can start this service again.This operation is not necessary, you have to apply it flexibly by yourself。
@@ -1169,8 +1180,8 @@ Enter the maximum frequency (example：1.6GHz enter 1600000）：
                 whiptail --title "Warnning" --msgbox "
 example: 1.6GHz type 1600000
 retry
-示例：1.6GHz 输入1600000
-输入格式错误,请重新输入：
+Exemplary example：1.6GHz 输入1600000
+Enter the format error, please re -enter：
                 " 15 60
                 maxCpu
             else
@@ -1632,7 +1643,7 @@ else
 fi
 }
 chSensors(){
-#install lm-sensors
+#Install LM-Sensors and configure it on the interface display
 #for i in `sed -n '/Chip drivers/,/\#----cut here/p' /tmp/sensors|sed '/Chip /d'|sed '/cut/d'`;do modprobe $i;done
 clear
 if [ $L = "en" ];then
@@ -1641,8 +1652,8 @@ if [ $L = "en" ];then
     "b" "Uninstall." \
     3>&1 1>&2 2>&3)
 else
-    x=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "Sensors:" 25 60 15 \
-    "a" "installation configuration temperature、CPU frequency display" \
+    x=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "Configure Sensors:" 25 60 15 \
+    "a" "Installation and configuration temperature, CPU frequency display" \
     "b" "Delete configuration" \
     3>&1 1>&2 2>&3)
 fi
@@ -1652,7 +1663,7 @@ if [ $exitstatus = 0 ]; then
     a )
         if(whiptail --title "Yes/No" --yesno "
 Your OS：$pve, you will install sensors interface, continue?(y/n)
-Your system is：$pve, you will install sensors界面，是否继续？(y/n)
+Your system is:$pve, You will install the Sensors interface to continue？(y/n)
             " 10 60) then
             js='/usr/share/pve-manager/js/pvemanagerlib.js'
             pm='/usr/share/perl5/PVE/API2/Nodes.pm'
@@ -1671,12 +1682,12 @@ Your system is：$pve, you will install sensors界面，是否继续？(y/n)
             fi
             if [[ "$OS" != "pve" ]];then
                 whiptail --title "Warnning" --msgbox "
-您的系统不是Proxmox VE, 无法安装!
+Your system is not proxmox ved, it cannot be installed!
 Your OS is not Proxmox VE!
                 " 10 60
                 if [[ "$bver" != "5" || "$bver" != "6" || "$bver" != "7" ]];then
                     whiptail --title "Warnning" --msgbox "
-您的系统版本无法安装!
+Your system version cannot be installed!
 Your Proxmox VE version can not install!
                     " 10 60
                     main
@@ -1685,7 +1696,7 @@ Your Proxmox VE version can not install!
             fi
             if [[ ! -f "$js" || ! -f "$pm" ]];then
                 whiptail --title "Warnning" --msgbox "
-您的Proxmox VE版本不支持此方式！
+Your Proxmox VE version does not support this method！
 Your Proxmox VE\'s version is not supported,Now quit!
                 " 10 60
                 main
@@ -1693,7 +1704,7 @@ Your Proxmox VE\'s version is not supported,Now quit!
             #if [[ -f "$js.backup" && -f "$sh" ]];then
             if [[ `cat $js|grep Sensors|wc -l` -gt 0 ]];then
                 whiptail --title "Warnning" --msgbox "
-您已经安装过本软件，请不要重复安装！
+You have installed this software, please do not install it repeatedly！
 You already installed,Now quit!
                 " 10 60
                 chSensors
@@ -1706,8 +1717,8 @@ You already installed,Now quit!
             if [ `echo $drivers|wc -w` = 0 ];then
                 whiptail --title "Warnning" --msgbox "
 Sensors driver not found.
-没有找到任何驱动，似乎你的系统没有温度传感器。
-继续配置CPU频率...
+No driver is found, it seems that your system has no temperature sensor.
+Continue to configure the CPU frequency ...
                 " 10 60
                 if [ $bver -gt 7 ];then
                     cat << EOF > /usr/bin/s.sh
@@ -1729,24 +1740,24 @@ EOF
             chmod +x /usr/bin/s.sh
             #--create the configs--
             if [ -f ./p1 ];then rm ./p1;fi
-            #--这里插入cpu频率　add cpu MHz--
+            #--Insert the CPU frequency hereadd cpu MHz--
             cat << EOF >> ./p1
              ,{
              itemId: 'MHz',
              colspan: 2,
              printBar: false,
-             title: gettext('CPU频率'),
+             title: gettext('CPU frequency'),
              textField: 'tdata',
              renderer:function(value){
                  var d = JSON.parse(value);
                  f0 = d['CPU-MHz'];
                  f1 = d['CPU-min-MHz'];
                  f2 = d['CPU-max-MHz'];
-                 return  \`CPU实时(Cur): \${f0} MHz | 最小(min): \${f1} MHz | 最大(max): \${f2} MHz \`;
+                 return  \`CPU: \${f0} MHz | Min: \${f1} MHz | Max: \${f2} MHz \`;
          }
  }
 EOF
-            #--插入cpu频率结束　add cpu MHz end--
+            #--Insert the CPU frequency endsadd cpu MHz end--
             cat << EOF >> ./p2
 \$res->{tdata} = \`/usr/bin/s.sh\`;
 EOF
@@ -1758,7 +1769,7 @@ EOF
             if [ -f ./p2 ];then rm ./p2;fi
             systemctl restart pveproxy
             whiptail --title "Success" --msgbox "
-如果没有意外，已经安装完成！浏览器打开界面刷新看一下概要界面！
+If there is no accident, it has been installed!The browser opens the interface to refresh the summary interface!
 Installation Complete! Go to websites and refresh to enjoy!
             " 10 60
 
@@ -1775,7 +1786,7 @@ Installation Complete! Go to websites and refresh to enjoy!
                 sleep 3
                 whiptail --title "Success" --msgbox "
 Install complete,if everything ok ,it\'s showed sensors.Next, restart you web.
-安装配置成功，如果没有意外，上面已经显示sensors。下一步会重启web界面，请不要惊慌。
+The installation configuration is successful. If there is no accident, Sensors have been displayed above.The next step will be restarted with the web interface, please don't panic.
                 " 20 60
             rm /tmp/sensors
             #debian 12 fixbug
@@ -1800,10 +1811,10 @@ EOF
             fi
             chmod +x /usr/bin/s.sh
             #--create the configs--
-            #--filter for sensors 过滤sensors项目--
+            #--filter for sensors Filter the Sensors project--
             d=`sensors|grep -E 'Package id 0|fan|Physical id 0|Core'|grep '^[a-zA-Z0-9].[[:print:]]*:.\s*\S*[0-9].\s*[A-Z].' -o|sed 's/:\ */:/g'|sed 's/\ C\ /C/g'|sed 's/\ V\ /V/g'|sed 's/\ RP/RPM/g'|sed 's/\ //g'|awk -F ":" '{print $1}'`
             if [ -f ./p1 ];then rm ./p1;fi
-            #--这里插入cpu频率　add cpu MHz--
+            #--Insert the CPU frequency here　add cpu MHz--
             cat << EOF >> ./p1
              ,{
              itemId: 'MHz',
@@ -1820,7 +1831,7 @@ EOF
          }
  }
 EOF
-            #--插入cpu频率结束　add cpu MHz end--
+            #-Stug in the CPU frequency to end the ADD CPU MHz END--
             cat << EOF >> ./p1
         ,{
             xtype: 'box',
@@ -1876,7 +1887,7 @@ EOF
             if [ -f ./p2 ];then rm ./p2;fi
             systemctl restart pveproxy
             whiptail --title "Success" --msgbox "
-如果没有意外，已经安装完成！浏览器打开界面刷新看一下概要界面！
+If there is no accident, it has been installed! The browser opens the interface to refresh the summary interface!
 Installation Complete! Go to websites and refresh to enjoy!
             " 10 60
         fi
@@ -1887,7 +1898,7 @@ Installation Complete! Go to websites and refresh to enjoy!
     b )
         if(whiptail --title "Yes/No" --yesno "
 Uninstall?
-确认要还原配置？
+Confirm that you want to restore the configuration?
         " 10 60)then
             js='/usr/share/pve-manager/js/pvemanagerlib.js'
             pm='/usr/share/perl5/PVE/API2/Nodes.pm'
@@ -1895,7 +1906,7 @@ Uninstall?
             if [[ `cat $js|grep -E 'Sensors|CPU'|wc -l` = 0 ]];then
                 whiptail --title "Warnning" --msgbox "
 No sensors found.
-没有检测到安装，不需要卸载。
+No installation is detected and no need to uninstall.
                 " 10 60
             else
                 sensors-detect --auto > /tmp/sensors
@@ -1923,7 +1934,7 @@ No sensors found.
             }|whiptail --gauge "Uninstalling" 10 60 0
             whiptail --title "Success" --msgbox "
 Uninstall complete.
-卸载成功。
+Uninstalled successfully.
             " 10 60
             fi
         fi
@@ -1954,12 +1965,12 @@ chPassth(){
 enablePass(){
 if(whiptail --title "Yes/No Box" --yesno "
 Enable PCI Passthrough(need reboot host)?
-是否开启硬件直通支持（需要重启物理机）?
+Do you turn on the hardware direct support (need to restart the physical machine)?
 " --defaultno 10 60) then
     if [ `dmesg | grep -e DMAR -e IOMMU|wc -l` = 0 ];then
         whiptail --title "Warnning" --msgbox "
 Your hardware do not support PCI Passthrough(No IOMMU)
-您的硬件不支持直通！
+Your hardware does not support direct through!
 " 10 60
         chPassth
     fi
@@ -1977,12 +1988,12 @@ EOF
         fi
         whiptail --title "Success" --msgbox "
     need to reboot to apply! Please reboot.
-    安装好后需要重启系统，请稍后重启。
+After installation, you need to restart the system, please restart later.
         " 10 60
     else
         whiptail --title "Warnning" --msgbox "
 You already configed!
-您已经配置过这个了!
+You have configured this!
 " 10 60
         chPassth
     fi
@@ -1994,19 +2005,19 @@ fi
 disablePass(){
 if(whiptail --title "Yes/No Box" --yesno "
 disable PCI Passthrough(need reboot host)?
-是否关闭硬件直通支持（需要重启物理机）?
+Whether to close the hardware direct support (need to restart the physical machine）?
 " --defaultno 10 60) then
     if [ `dmesg | grep -e DMAR -e IOMMU|wc -l` = 0 ];then
         whiptail --title "Warnning" --yesno "
 Your hardware do not support PCI Passthrough(No IOMMU)
-您的硬件不支持直通！
+Your hardware does not support direct passage！
 " 10 60
         chPassth
     fi
     getIommu
     if [ `grep "$iommu" /etc/default/grub|wc -l` = 0 ];then
         whiptail --title "Warnning" --msgbox "not config yet.
-您还没有配置过该项" 10 60
+You haven't configured this item yet" 10 60
         chPassth
     else
         update-grub
@@ -2020,7 +2031,7 @@ Your hardware do not support PCI Passthrough(No IOMMU)
         }|whiptail --gauge "installing..." 10 60 10
         whiptail --title "Success" --msgbox "
 need to reboot to apply! Please reboot.
-安装好后需要重启系统，请稍后重启。
+You need to restart the system after installation, please restart later。
         " 10 60
     fi
 else
@@ -2033,14 +2044,14 @@ enVideo(){
     if [ `dmesg | grep -e DMAR -e IOMMU|wc -l` = 0 ];then
         whiptail --title "Warnning" --msgbox "
     Your hardware do not support PCI Passthrough(No IOMMU)
-    您的硬件不支持直通！
+    Your hardware does not support direct passage！
     " 10 60
         configVideo
     fi
     if [ `grep 'iommu=on' /etc/default/grub|wc -l` = 0 ];then
         if(whiptail --title "Warnning" --yesno "
     your host not enable IOMMU,jump to enable?
-    您的主机系统尚未配置直通支持，跳转去设置？
+    Your host system has not been equipped with direct support, jump to set up？
         " 10 60)then
             enablePass
         fi
@@ -2048,7 +2059,7 @@ enVideo(){
     if [ `grep 'vfio' /etc/modules|wc -l` = 0 ];then
         if(whiptail --title "Warnning" --yesno "
     your host not enable IOMMU,jump to enable?
-    您的主机系统尚未配置直通支持，跳转去设置？
+    Your host system has not been equipped with direct support, jump to set up？
         " 10 60)then
             enablePass
         fi
@@ -2079,7 +2090,7 @@ getVideo(){
     done
     DISTROS=$(whiptail --title "Video cards:" --checklist \
 "Choose cards to config(* mark means configed):
-选择显卡（标*号为已经配置过的）：
+Select the graphics card (the standard*is the configured)：
 " 15 90 4 \
 $(cat cards) \
 3>&1 1>&2 2>&3)
@@ -2090,7 +2101,7 @@ $(cat cards) \
 	    rm cards*
             if(whiptail --title "Warnning" --yesno "
 Continue?
-请确认是否继续？
+Please confirm whether to continue？
             " 10 60)then
                 clear
             else
@@ -2108,7 +2119,7 @@ Continue?
             else
                 if(whiptail --defaultno --title "Warnning" --yesno "
     It seems you have already configed it before.Reconfig?
-    您好像已经配置过这个了。重新配置？
+    You seem to have configured this.Reconfigure？
                 " 10 60)then
                     clear
                 else
@@ -2143,7 +2154,7 @@ Continue?
             update-initramfs -u -k all
             whiptail --title "Success" --msgbox "
     need to reboot to apply! Please reboot.
-    安装好后需要重启系统，请稍后重启。
+    You need to restart the system after installation, please restart later。
             " 10 60
         else
             if(whiptail --title "Warnning" --yesno "
@@ -2166,7 +2177,7 @@ Continue?
             sleep 1
             }|whiptail --gauge "configing..." 10 60 10
             whiptail --title "Success" --msgbox "Done.
-配置完成" 10 60
+Configuration complete" 10 60
         fi
     else
         configVideo
@@ -2227,21 +2238,21 @@ $(echo $cards) \
             list1=`echo $list|awk 'NR>1{print $1}'`
             vmid=$(whiptail  --title " PveTools   Version : 2.3.8 " --radiolist "
         Choose vmid to set video card Passthrough:
-        选择需要配置显卡直通的vm：" 20 60 10 \
+        Choose VMs that need to be configured to configure the graphics card：" 20 60 10 \
             $(echo $ls) \
             3>&1 1>&2 2>&3)
             exitstatus=$?
             if [ $exitstatus = 0 ]; then
                 if(whiptail --title "Yes/No" --yesno "
         you choose: $vmid ,continue?
-        你选的是：$vmid ，是否继续?
+        You chose：$vmid ，Whether to continue?
                     " 10 60)then
                     echo $vmid>vmid
                     while [ true ]
                     do
                         if [ `echo "$vmid"|grep "^[0-9]*$"|wc -l` = 0 ];then
                             whiptail --title "Warnning" --msgbox "
-            输入格式错误，请重新输入：
+            Enter the format error, please re -enter：
                             " 10 60
                             addVideo
                         else
@@ -2251,16 +2262,16 @@ $(echo $cards) \
                     if [ $vmid -eq $confId ];then
                         whiptail --title "Warnning" --msgbox "
 You already configed!
-您已经配置过这个了!
+You have configured this!
                         " 10 60
                         addVideo
                     fi
                     opt=$(whiptail  --title " PveTools   Version : 2.3.8 " --checklist "
 Choose options:
-选择选项：" 20 60 10 \
-                    "q35" "q35支持，gpu直通建议选择，独显留空" OFF \
-                    "ovmf" "gpu直通选择" OFF \
-                    "x-vga" "主gpu，默认已选择" ON \
+Option：" 20 60 10 \
+                    "q35" "Q35 supports, GPU is recommended to choose from, leaving a blank alone " OFF \
+                    "ovmf" "GPU direct selection" OFF \
+                    "x-vga" "Main GPU, the default has been selected" ON \
                     3>&1 1>&2 2>&3)
                     exitstatus=$?
                     if [ $exitstatus = 0 ]; then
@@ -2295,7 +2306,7 @@ Choose options:
                             else
                                 whiptail --title "Warnning" --msgbox "
 You already configed!
-您已经配置过这个了!
+You have configured this!
                                 " 10 60
                             fi
                             if [ $confId ];then
@@ -2303,11 +2314,11 @@ You already configed!
                             fi
                             whiptail --title "Success" --msgbox "
 Configed!Please reboot vm.
-配置成功！重启虚拟机后生效。
+Configuration is successful!Effective after restarting the virtual machine.
                             " 10 60
                             if(whiptail --title "Yes/No" --yesno "
 Let tool auto switch vm?
-是否自动帮你重启切换虚拟机？" 10 60)then
+Whether to automatically restart the virtual machine？" 10 60)then
                                 #vmid=`echo $vmid|sed 's/\"//g'`
                                 vmid=`cat vmid`
                                 rm vmid
@@ -2316,7 +2327,7 @@ Let tool auto switch vm?
                                     if [ $usb ];then
                                         if(whiptail --title "Yes/No" --yesno "
 Let tool auto switch usb?
-是否自动切换usb设备？
+Whether to automatically switch the USB device？
                                         " 10 60)then
                                             cat $confPath$confId.conf |grep '^usb'|sed 's/ //g'>usb
                                             sed -i '/^usb/d' $confPath$confId.conf
@@ -2334,7 +2345,7 @@ Let tool auto switch usb?
                                 qm start $vmid
                             whiptail --title "Success" --msgbox "
 Configed!
-配置成功！
+Configuration！
                             " 10 60
                             else
                                 configVideo
@@ -2353,7 +2364,7 @@ Configed!
         else
             whiptail --title "Warnning" --msgbox "
 Please choose a card.
-请选择一个显卡。" 10 60
+Please select a graphics card." 10 60
             addVideo
         fi
     else
@@ -2426,21 +2437,21 @@ $(echo $cards) \
             list1=`echo $list|awk 'NR>1{print $1}'`
             vmid=$(whiptail  --title " PveTools   Version : 2.3.8 " --radiolist "
         Choose vmid to set video card Passthrough:
-        选择需要配置显卡直通的vm：" 20 60 10 \
+        Choose VMs that need to be configured to configure the graphics card：" 20 60 10 \
             $(echo $ls) \
             3>&1 1>&2 2>&3)
             exitstatus=$?
             if [ $exitstatus = 0 ]; then
                 if(whiptail --title "Yes/No" --yesno "
         you choose: $vmid ,continue?
-        你选的是：$vmid ，是否继续?
+        You chose:$vmid ，Whether to continue?
                     " 10 60)then
                     echo $vmid>vmid
                     while [ true ]
                     do
                         if [ `echo "$vmid"|grep "^[0-9]*$"|wc -l` = 0 ];then
                             whiptail --title "Warnning" --msgbox "
-            输入格式错误，请重新输入：
+            Enter the format error, please re -enter：
                             " 10 60
                             addVideo
                         else
@@ -2450,16 +2461,15 @@ $(echo $cards) \
                     if [ $vmid -eq $confId ];then
                         whiptail --title "Warnning" --msgbox "
 You already configed!
-您已经配置过这个了!
-                        " 10 60
+You have configured this!                        " 10 60
                         addVideo
                     fi
                     opt=$(whiptail  --title " PveTools   Version : 2.3.8 " --checklist "
 Choose options:
-选择选项：" 20 60 10 \
-                    "q35" "q35支持，gpu直通建议选择，独显留空" OFF \
-                    "ovmf" "gpu直通选择" OFF \
-                    "x-vga" "主gpu，默认已选择" ON \
+Option：" 20 60 10 \
+                    "Q35" "Q35 supports, GPU direct proposal selection, leaving no empty" OFF \
+                    "OVMF" "GPU Directly select" OFF \
+                    "x-vga" "Main GPU, the default has been selected" on \
                     3>&1 1>&2 2>&3)
                     exitstatus=$?
                     if [ $exitstatus = 0 ]; then
@@ -2494,7 +2504,7 @@ Choose options:
                             else
                                 whiptail --title "Warnning" --msgbox "
 You already configed!
-您已经配置过这个了!
+You have configured this!
                                 " 10 60
                             fi
                             if [ $confId ];then
@@ -2502,11 +2512,11 @@ You already configed!
                             fi
                             whiptail --title "Success" --msgbox "
 Configed!Please reboot vm.
-配置成功！重启虚拟机后生效。
+Configuration is successful!Effective after restarting the virtual machine.
                             " 10 60
                             if(whiptail --title "Yes/No" --yesno "
 Let tool auto switch vm?
-是否让工具自动帮你重启切换虚拟机？" 10 60)then
+Do you let the tool automatically restart the switch to the virtual machine?" 10 60)then
                                 #vmid=`echo $vmid|sed 's/\"//g'`
                                 vmid=`cat vmid`
                                 rm vmid
@@ -2516,7 +2526,7 @@ Let tool auto switch vm?
                                 qm start $vmid
                                 whiptail --title "Success" --msgbox "
 Configed!
-配置成功！
+Configuration is successful!
                                 " 10 60
                             else
                                 configVideo
@@ -2535,7 +2545,7 @@ Configed!
         else
             whiptail --title "Warnning" --msgbox "
 Please choose a card.
-请选择一个显卡。" 10 60
+Please select a graphics card." 10 60
             addVideo
         fi
     else
@@ -2550,9 +2560,9 @@ if [ $L = "en" ];then
     "b" "Config Video Card Passthrough to vm" \
     3>&1 1>&2 2>&3)
 else
-    x=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "配置PCI显卡直通:" 25 60 15 \
-    "a" "配置物理机显卡直通支持。" \
-    "b" "配置显卡直通给虚拟机。" \
+    x=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "Configure the PCI graphics card directly:" 25 60 15 \
+    "a" "Configure the physical machine graphics card directly to support." \
+    "b" "Configure the graphics card directly to the virtual machine." \
     3>&1 1>&2 2>&3)
 fi
 exitstatus=$?
@@ -2581,11 +2591,11 @@ if [ $L = "en" ];then
     "d" "Config qm set disks." \
     3>&1 1>&2 2>&3)
 else
-    x=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "配置硬件直通:" 25 60 15 \
-    "a" "配置开启物理机硬件直通支持。" \
-    "b" "配置关闭物理机硬件直通支持。" \
-    "c" "配置显卡直通。" \
-    "d" "配置qm set 硬盘给虚拟机。" \
+    x=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "Configuration hardware through:" 25 60 15 \
+    "a" "Configure the direct support of the hardware of the physical machine." \
+    "b" "Configuration to close the physical machine hardware direct support." \
+    "c" "Configure the graphics card directly." \
+    "d" "Configure the QM SET hard disk to the virtual machine." \
     3>&1 1>&2 2>&3)
 fi
 exitstatus=$?
@@ -2611,7 +2621,7 @@ fi
 checkPath(){
     x=$(whiptail --title "Choose a path" --inputbox "
 Input path:
-请输入路径：" 10 60 \
+Please enter the path：" 10 60 \
     $1 \
     3>&1 1>&2 2>&3)
     exitstatus=$?
@@ -2620,7 +2630,7 @@ Input path:
         do
             if [ ! -d $x ];then
                 whiptail --title "Warnning" --msgbox "Path not found.
-没有检测到路径，请重新输入" 10 60
+If the path is not detected, please re -enter" 10 60
                 checkPath
             else
                 break
@@ -2637,13 +2647,13 @@ chRoot(){
         clear
         if(whiptail --title "Yes/No" --yesno "
 Continue?
-是否继续？" --defaultno 10 60 )then
+Whether to continue?" --defaultno 10 60 )then
             if [ ! -f "/usr/bin/schroot" ];then
                 whiptail --title "Warnning" --msgbox "you not installed schroot.
-您还没有安装schroot。" 10 60
+You haven't installed yet schroot。" 10 60
                 if [ `ps aux|grep apt-get|wc -l` -gt 1 ];then
                     if(whiptail --title "Yes/No" --yesno "apt-get is running,killit and install schroot?
-后台有apt-get正在运行，是否杀掉进行安装？
+There are APT-get in the background, whether to kill for installation？
                     " 10 60);then
                         killall apt-get && apt-get -y install schroot
                     else
@@ -2677,7 +2687,7 @@ EOF
             cd $chrootp
             if [ `ls $chrootp/bin|wc -l` -gt 0 ];then
                 if(whiptail --title "Warnning" --yesno "files exist, remove and reinstall?
-已经存在文件，是否清空重装？" --defaultno 10 60)then
+Is there already files, is it empty and reinstalled?" --defaultno 10 60)then
                     for i in `schroot --list --all-sessions|awk -F ":" '{print $2}'`;do schroot -e -c $i;done
                     killall dockerd
                     killall portainer
@@ -2723,7 +2733,7 @@ echo "Github: https://github.com/ivanhao/pvetools"
 EOF
             schroot -c alpine apk update
             whiptail --title "Success" --msgbox "Done.
-安装配置完成！" 10 60
+The installation is complete!" 10 60
             docker
             dockerWeb
             configChroot
@@ -2763,7 +2773,7 @@ EOF
         checkSchroot
         if [ `schroot -c alpine -d /root ls /usr/bin|grep docker|wc -l` = 0 ];then
             if(whiptail --title "Warnning" --yesno "No docker found.Install?
-您还没有安装docker,是否安装？" 10 60)then
+You haven't installed the docker yet, whether to install？" 10 60)then
                 schroot -c alpine -d /root apk update
                 schroot -c alpine -d /root apk add docker
                 cat << EOF >> $chrootp/etc/profile
@@ -2803,7 +2813,7 @@ EOF
             screen -S docker -X quit
         fi
         if(whiptail --title "Yes/No" --yesno "Install portainer web interface?
-是否安装web界面（portainer）？" 10 60);then
+Whether to install the web interface（portainer）？" 10 60);then
             dockerWeb
         else
             clear
@@ -3083,13 +3093,13 @@ Choose vmid to set disk:
         if [ $exitstatus = 0 ]; then
             if(whiptail --title "Yes/No" --yesno "
 you choose: $vmid ,continue?
-你选的是：$vmid ，是否继续?
+You chose: $vmid ，是否继续?
                 " 10 60)then
                 while [ true ]
                 do
                     if [ `echo "$vmid"|grep "^[0-9]*$"|wc -l` = 0 ];then
                         whiptail --title "Warnning" --msgbox "
-输入格式错误，请重新输入：
+Enter the format error, please re -enter：
                         " 10 60
                         chQmdisk
                     else
@@ -3106,13 +3116,13 @@ disk list:
 $(cat /etc/pve/qemu-server/$vmid.conf|grep -E '^ide[0-9]|^scsi[0-9]|^sata[0-9]'|awk -F ":" '{print $1" "$2" "$3}')
 -----------------------
 Choose disk:
-选择硬盘：" 30 90 10 \
+Choose the hard disk:" 30 90 10 \
                     $(echo $disks) \
                     3>&1 1>&2 2>&3)
                     exitstatus=$?
                     t=$(whiptail --title " PveTools Version : 2.3.8 " --menu "
 Choose disk type:
-选择硬盘接口类型：" 20 60 10 \
+Select the hard disk interface type:" 20 60 10 \
                     "sata" "vm sata type" \
                     "scsi" "vm scsi type" \
                     "ide" "vm ide type" \
@@ -3133,7 +3143,7 @@ Choose disk type:
                                 #if [ $t = "ide" ] && [ `echo $i|grep "nvme"|wc -l` -gt 0 ];then
                                 if [ $t = "ide" ] && [ $did -gt 3 ];then
                                     whiptail --title "Warnning" --msgbox "ide is greate then 3.
-ide的类型已经超过3个,请重选其他类型!" 10 60
+ide There are more than 3 types, please re -select other types!" 10 60
                                 else
                                     qm set $vmid --$t$did /dev/disk/by-id/$i
                                 fi
@@ -3181,9 +3191,9 @@ Choose disk:
         "b" "unset disk to vm." \
         3>&1 1>&2 2>&3)
     else
-        x=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "配置qm set 物理硬盘给虚拟机:" 25 60 15 \
-        "a" "添加硬盘给虚拟机。" \
-        "b" "删除虚拟机里的硬盘。" \
+        x=$(whiptail --title " PveTools   Version : 2.3.8 " --menu "Configuration "qm set" Physical hard disk to virtual machine机:" 25 60 15 \
+        "a" "Add a hard disk to the virtual machine." \
+        "b" "Delete the hard disk in the virtual machine." \
         3>&1 1>&2 2>&3)
     fi
     exitstatus=$?
@@ -3509,7 +3519,6 @@ Extract the graphics card VBIOS success, the file is in'/usr/share/kvm/vbios.bin
         "D" "Speedtest speed" \ \ \
         "E" "Install BBR \\ BBR+" \
         "F" "Configure v2ray" \
-        "G" "" Da (N) card vbios extract "\
         "H" "USB device as the optimization of the system disk" \
         "I" "Dark Mode Interface" \
         "J" "Automatic expansion of root partition available space" \
@@ -3812,7 +3821,7 @@ fi
             chSubs wn
             chSensors wn
             echo "Config complete!Back to main menu 5s later."
-            echo "The configuration has been completed!Return to the main interface after 5 seconds."
+            echo "已经完成配置！5秒后返回主界面。"
             echo "5"
             sleep 1
             echo "4"
