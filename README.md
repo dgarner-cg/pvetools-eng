@@ -74,13 +74,6 @@ Only in the following interfaces, you need to use the tab key to select the cont
 
 #### If this script helps you, please click the star in the upper right corner^_^
 
-## QQ communication group: 878510703
-
-![qq](http://upload-images.jianshu.io/upload_images/4171480-e0204ead0fb41d5e.jpg)
-
-## If you think it’s good, please donate ^_^
-![alipay](https://upload-images.jianshu.io/upload_images/4171480-04c3ebb5c11cfdf9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
-
 
 ##### v2.3.6
 
